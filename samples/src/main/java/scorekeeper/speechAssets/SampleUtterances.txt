@@ -1,0 +1,6 @@
+CreateNewNoteIntent create a new note
+CreateNewNoteIntent create a new note for me
+SetFreeFormDataIntent {Text}
+SetFreeFormDataIntent {Text}
+GetNoteByTitleIntent tell me my {Text} note
+GetNoteByTitleIntent get my {Text} note

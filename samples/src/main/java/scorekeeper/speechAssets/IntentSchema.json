@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "intent": "CreateNewNoteIntent"
+    },
+    {
+      "intent": "SetFreeFormDataIntent",
+      "slots": [
+        {
+          "name": "Text",
+          "type": "LIST_OF_SAMPLE_TEXT"
+        }
+      ]
+    },
+    {
+      "intent": "GetNoteByTitleIntent",
+      "slots": [
+        {
+          "name": "Text",
+          "type": "LIST_OF_SAMPLE_TEXT"
+        }
+      ]
+    }
+  ]
+}
