@@ -14,18 +14,17 @@ public class QuickNoteDao {
 
     /**
      * Reads and returns the {@link QuickNoteUserDataItem} using user information from the session.
-     * <p>
-     * Returns null if the item could not be found in the database.
+     * 
      * 
      * @param session
-     * @return
+     * @return user's saved note or null if the item could not be found in DB
      */
     public QuickNoteUserDataItem getQuickNoteUserDataItem(Session session, String noteName) throws Exception {
         String userId = session.getUser().getUserId();
     	
     	QuickNoteUserDataItem item = new QuickNoteUserDataItem();
         item = dynamoDbClient.loadItem(userId, noteName);
-
+        
         if (item == null) {
             return null;
         }
@@ -34,9 +33,9 @@ public class QuickNoteDao {
     }
 
     /**
-     * Saves the {@link NewNote} into the database.
+     * Saves the {@link myNote} into the database.
      * 
-     * @param game
+     * @param myNote
      */
     public void saveQuickNote(Session session, QuickNoteUserDataItem myNote) throws Exception {
     	

@@ -4,7 +4,7 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 
 /**
- * Client for DynamoDB persistance layer for the Score Keeper skill.
+ * Client for DynamoDB persistence layer for the Quick Note skill.
  */
 public class QuickNoteDynamoDbClient {
     private final AmazonDynamoDBClient dynamoDBClient;
@@ -14,11 +14,13 @@ public class QuickNoteDynamoDbClient {
     }
 
     /**
-     * Loads an item from DynamoDB by primary Hash Key. Callers of this method should pass in an
-     * object which represents an item in the DynamoDB table item with the primary key populated.
+     * Loads an item from DynamoDB by hash key and range key. 
+     * Callers of this method should pass in a customer ID and the name
+     * of the note to look up.
      * 
-     * @param tableItem
-     * @return
+     * @param userId
+     * @param noteName
+     * @return item found in database
      */
     public QuickNoteUserDataItem loadItem(String userId, String noteName) {
         DynamoDBMapper mapper = createDynamoDBMapper();

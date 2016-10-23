@@ -1,5 +1,3 @@
-/**
- */
 package quicknote;
 
 import org.slf4j.Logger;
@@ -19,7 +17,7 @@ import com.amazon.speech.speechlet.SpeechletResponse;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 
 /**
- * Speechlet - 
+ * The {@link QuickNoteSpeechlet} receives various intents and requests the appropriate response from the QuickNoteManager.
  */
 public class QuickNoteSpeechlet implements Speechlet {
     private static final Logger log = LoggerFactory.getLogger(QuickNoteSpeechlet.class);
@@ -89,7 +87,7 @@ public class QuickNoteSpeechlet implements Speechlet {
             throws SpeechletException {
         log.info("onSessionEnded requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
-        // any cleanup logic goes here
+    
     }
 
     /**

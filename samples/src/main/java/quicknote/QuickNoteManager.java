@@ -1,17 +1,4 @@
-/**
-    Copyright 2014-2015 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-
-    Licensed under the Apache License, Version 2.0 (the "License"). You may not use this file except in compliance with the License. A copy of the License is located at
-
-        http://aws.amazon.com/apache2.0/
-
-    or in the "license" file accompanying this file. This file is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
- */
 package quicknote;
-
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.SortedMap;
 
 import quicknote.storage.QuickNoteDao;
 import quicknote.storage.QuickNoteDynamoDbClient;
@@ -21,7 +8,6 @@ import com.amazon.speech.slu.Intent;
 import com.amazon.speech.speechlet.LaunchRequest;
 import com.amazon.speech.speechlet.Session;
 import com.amazon.speech.speechlet.SpeechletResponse;
-import com.amazon.speech.ui.Card;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
 import com.amazon.speech.ui.Reprompt;
 import com.amazon.speech.ui.SimpleCard;
@@ -29,7 +15,7 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 
 /**
  * The {@link QuickNoteManager} receives various events and intents and manages the flow of the
- * game.
+ * user's interaction with Alexa.
  */
 public class QuickNoteManager {
     /**
@@ -59,13 +45,13 @@ public class QuickNoteManager {
         // based on whether the customer has any notes saved already
         String speechText, repromptText;
         
+        //TODO: implement a check for existing notes for the user.  If there is no existing note, then read the following.
         //speechText = "This is Quick Note.  You can ask me to create a new note.";
-        //repromptText = "You can ask me to remember a note for you.";
+        //return getTellSpeechletResponse(speechText, false);
         
-        //TODO add check for existing notes from that user.
+        //TODO add check for existing notes from that user. If there are existing notes, then read the following
         speechText = "This is Quick Note.  You can ask me to create a new note, or you can ask for an existing note by name. What do you want me to do?";
         repromptText = "What would you like me to do?";
-
 
         return getAskSpeechletResponse(speechText, repromptText);
     }
@@ -105,7 +91,7 @@ public class QuickNoteManager {
         String speechText;
         String repromptText;
         
-        if (newNoteName == null){
+        if (newNoteName == null || newNoteName == ""){
         	speechText = "Sorry I didn't catch that name. Please tell me again.";
         	repromptText = "I couldn't hear your note name.  Please tell me the name again.";
         	return getAskSpeechletResponse(speechText, repromptText);
@@ -126,7 +112,8 @@ public class QuickNoteManager {
      *            {@link Intent} for this request
      * @param session
      *            {@link Session} for this request
-     * @param quickNoteUserDataItem
+     * @param myNote 
+     * 				the note that we are going to add to the DB
      * 
      * @return response for the add score intent
      */
@@ -136,7 +123,7 @@ public class QuickNoteManager {
     	String speechText;
     	String repromptText;
     	
-    	if (newNoteBody == null){
+    	if (newNoteBody == null || newNoteBody == ""){
     		speechText = "Sorry I couldn't understand your note content.  Please tell me again.";
     		repromptText = "I didn't catch that.  What is the note content?";
     		
