@@ -2,6 +2,7 @@ package quicknote.storage;
 
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.document.DeleteItemOutcome;
 
 /**
  * Client for DynamoDB persistence layer for the Quick Note skill.
@@ -37,7 +38,8 @@ public class QuickNoteDynamoDbClient {
     public void saveItem(final QuickNoteUserDataItem tableItem) {
         DynamoDBMapper mapper = createDynamoDBMapper();
         mapper.save(tableItem);
-    }
+    } 
+    
 
     /**
      * Creates a {@link DynamoDBMapper} using the default configurations.

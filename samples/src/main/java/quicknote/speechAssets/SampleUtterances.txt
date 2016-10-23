@@ -26,3 +26,8 @@ GetNoteByTitleIntent get {dentist | Text} note
 GetNoteByTitleIntent get {number | Text} note
 GetNoteByTitleIntent get {phone number | Text} note
 GetNoteByTitleIntent get {ten eleven twenty five two | Text} note
+GetNoteByTitleIntent tell me my {doctor appointment |Text} note
+GetNoteByTitleIntent tell me my {dentist | Text} note
+GetNoteByTitleIntent tell me my {number | Text} note
+GetNoteByTitleIntent tell me my {phone number | Text} note
+GetNoteByTitleIntent tell me my {ten eleven twenty five two | Text} note

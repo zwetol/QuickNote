@@ -160,7 +160,6 @@ public class QuickNoteManager {
      *            {@link Session} for this request
      * @return response for the get note by name intent
      */
-    @SuppressWarnings("unused")
 	public SpeechletResponse getGetNoteByTitleIntentResponse(Intent intent, Session session) {
     	
     	String speechText;
@@ -174,21 +173,17 @@ public class QuickNoteManager {
     		
     		return getTellSpeechletResponse(speechText, false);
     	}
-
         try{
         	itemFound = quickNoteDao.getQuickNoteUserDataItem(session, noteName);
-            speechText = itemFound.getNoteBody();
-        	
+            if (itemFound == null){
+            	speechText = "I couldn't find a note by that name.  You can ask me again.";
+            	
+            	return getTellSpeechletResponse(speechText, false);
+            }
+            speechText = itemFound.getNoteBody();	             
         } catch (Exception e){
-        	return getTellSpeechletResponse("Error retrieving note: " + e.getMessage(), false);
+        	return getTellSpeechletResponse("Error retrieving note.", false);
         }
-        
-        if (itemFound == null){
-        	speechText = "I couldn't find a note by that name.  You can ask me again.";
-        	
-        	return getTellSpeechletResponse(speechText, false);
-        }
-        
         return getTellSpeechletResponse("Found the note titled: " + noteName + ", which reads: " + speechText, true);
     }
 
@@ -257,7 +252,7 @@ public class QuickNoteManager {
 
     	if (isSendCard == true){
             SimpleCard card = new SimpleCard();
-            card.setTitle("Alexa Skills Card");
+            card.setTitle("Alexa Skills Card:  Quick Note");
             card.setContent(speechText);
             return SpeechletResponse.newTellResponse(speech, card);
     	}
