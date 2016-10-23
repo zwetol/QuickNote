@@ -25,6 +25,7 @@ public class QuickNoteDynamoDbClient {
     public QuickNoteUserDataItem loadItem(String userId, String noteName) {
         DynamoDBMapper mapper = createDynamoDBMapper();
         QuickNoteUserDataItem item = mapper.load(QuickNoteUserDataItem.class, userId, noteName);
+
         return item;
     }
 

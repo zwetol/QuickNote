@@ -64,6 +64,11 @@ public class QuickNoteSpeechlet implements Speechlet {
         else if("GetNoteByTitleIntent".equals(intent.getName())){
         	return quickNoteManager.getGetNoteByTitleIntentResponse(intent, session);
         }
+        
+        /**the SetFreeFormDataIntent applies to two different user interactions: setting the title
+        * AND setting the body of the note.  We want to determine how to execute on this intent 
+        * based on what point the user is within the interaction.
+        **/ 
         else if("SetFreeFormDataIntent".equals(intent.getName()) && this.myNote != null){
         	System.out.println(this.myNote.getNoteName() + " " + this.myNote.getNoteBody());
         	

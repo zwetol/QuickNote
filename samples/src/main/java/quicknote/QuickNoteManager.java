@@ -165,7 +165,9 @@ public class QuickNoteManager {
     	
     	String speechText;
     	QuickNoteUserDataItem itemFound = null;
-    	String noteName = intent.getSlot(SLOT_TEXT).toString();
+    	String noteName = intent.getSlot(SLOT_TEXT).getValue().toString();
+    	
+    	System.out.println("Finding note by name: " + noteName);
     	
     	if (noteName == null){
     		speechText = "I couldn't understand the name of your note.  Please ask me again.";
@@ -178,7 +180,7 @@ public class QuickNoteManager {
             speechText = itemFound.getNoteBody();
         	
         } catch (Exception e){
-        	return getTellSpeechletResponse("Error retrieving note.", false);
+        	return getTellSpeechletResponse("Error retrieving note: " + e.getMessage(), false);
         }
         
         if (itemFound == null){
@@ -187,7 +189,7 @@ public class QuickNoteManager {
         	return getTellSpeechletResponse(speechText, false);
         }
         
-        return getTellSpeechletResponse(speechText, true);
+        return getTellSpeechletResponse("Found the note titled: " + noteName + ", which reads: " + speechText, true);
     }
 
 
@@ -255,7 +257,7 @@ public class QuickNoteManager {
 
     	if (isSendCard == true){
             SimpleCard card = new SimpleCard();
-            card.setTitle("Session");
+            card.setTitle("Alexa Skills Card");
             card.setContent(speechText);
             return SpeechletResponse.newTellResponse(speech, card);
     	}
