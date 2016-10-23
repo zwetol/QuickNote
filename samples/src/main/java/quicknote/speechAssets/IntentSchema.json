@@ -1,0 +1,25 @@
+{
+  "intents": [
+    {
+      "intent": "CreateNewNoteIntent"
+    },
+    {
+      "intent": "SetFreeFormDataIntent",
+      "slots": [
+        {
+          "name": "Text",
+          "type": "AMAZON.LITERAL"
+        }
+      ]
+    },
+    {
+      "intent": "GetNoteByTitleIntent",
+      "slots": [
+        {
+          "name": "Text",
+          "type": "AMAZON.LITERAL"
+        }
+      ]
+    }
+  ]
+}

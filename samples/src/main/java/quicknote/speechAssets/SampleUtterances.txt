@@ -1,0 +1,28 @@
+CreateNewNoteIntent create a new note
+CreateNewNoteIntent create a new note
+CreateNewNoteIntent create a new note
+CreateNewNoteIntent create a new note
+CreateNewNoteIntent create a new note
+CreateNewNoteIntent create a new note
+CreateNewNoteIntent create a new note
+CreateNewNoteIntent make a new note
+CreateNewNoteIntent new note
+CreateNewNoteIntent create a new note for me
+SetFreeFormDataIntent {doctor appointment | Text}
+SetFreeFormDataIntent {dentist | Text}
+SetFreeFormDataIntent {number | Text}
+SetFreeFormDataIntent {secret | Text}
+SetFreeFormDataIntent {phone number | Text}
+SetFreeFormDataIntent {one two three five seven | Text}
+SetFreeFormDataIntent {why will this notwork | Text}
+SetFreeFormDataIntent {this is driving me crazy | Text}
+GetNoteByTitleIntent get my {doctor appointment |Text} note
+GetNoteByTitleIntent get my {dentist | Text} note
+GetNoteByTitleIntent get my {number | Text} note
+GetNoteByTitleIntent get my {phone number | Text} note
+GetNoteByTitleIntent get my {ten eleven twenty five two | Text} note
+GetNoteByTitleIntent get {doctor appointment |Text} note
+GetNoteByTitleIntent get {dentist | Text} note
+GetNoteByTitleIntent get {number | Text} note
+GetNoteByTitleIntent get {phone number | Text} note
+GetNoteByTitleIntent get {ten eleven twenty five two | Text} note
