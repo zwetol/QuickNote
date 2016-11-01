@@ -21,7 +21,7 @@ public final class QuickNoteSpeechletRequestStreamHandler extends SpeechletReque
          * Alexa Skill and put the relevant Application Ids in this Set.
          */
         supportedApplicationIds = new HashSet<String>();
-        supportedApplicationIds.add("amzn1.ask.skill.ec108b39-00c3-4e1b-bba5-ccef3cda1688");
+        supportedApplicationIds.add("amzn1.ask.skill.<get app id>");
     }
 
     public QuickNoteSpeechletRequestStreamHandler() {
