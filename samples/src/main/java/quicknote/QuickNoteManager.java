@@ -1,6 +1,5 @@
 package quicknote;
 
-import quicknote.storage.QuickNoteDao;
 import quicknote.storage.QuickNoteDynamoDbClient;
 import quicknote.storage.QuickNoteUserDataItem;
 
@@ -23,12 +22,11 @@ public class QuickNoteManager {
      */
     private static final String SLOT_TEXT = "Text";
 
-    private final QuickNoteDao quickNoteDao;
+    private final QuickNoteDynamoDbClient dynamoDbClient; 
     
     public QuickNoteManager(final AmazonDynamoDBClient amazonDynamoDbClient) {
-        QuickNoteDynamoDbClient dynamoDbClient =
-                new QuickNoteDynamoDbClient(amazonDynamoDbClient);
-        quickNoteDao = new QuickNoteDao(dynamoDbClient);
+    	dynamoDbClient = new QuickNoteDynamoDbClient(amazonDynamoDbClient);
+        
     }
 
     /**
@@ -140,7 +138,7 @@ public class QuickNoteManager {
         
         //save the note to dynamoDB
         try{
-            quickNoteDao.saveQuickNote(session, myNote);
+        	this.dynamoDbClient.saveItem(myNote);
         } catch (Exception e){
         	return getTellSpeechletResponse("Error saving note.", false);
         }
@@ -169,14 +167,15 @@ public class QuickNoteManager {
     	System.out.println("Finding note by name: " + noteName);
     	
     	if (noteName == null){
-    		speechText = "I couldn't understand the name of your note.  Please ask me again.";
+    		speechText = "I couldn't understand the name of your note.  Please ask me to find it again.";
     		
     		return getTellSpeechletResponse(speechText, false);
     	}
         try{
-        	itemFound = quickNoteDao.getQuickNoteUserDataItem(session, noteName);
+        	itemFound = this.dynamoDbClient.loadItem(session.getUser().getUserId(), noteName);
+
             if (itemFound == null){
-            	speechText = "I couldn't find a note by that name.  You can ask me again.";
+            	speechText = "I couldn't find a note by that name.  You can ask me to find it again.";
             	
             	return getTellSpeechletResponse(speechText, false);
             }
@@ -186,7 +185,64 @@ public class QuickNoteManager {
         }
         return getTellSpeechletResponse("Found the note titled: " + noteName + ", which reads: " + speechText, true);
     }
+	
+	/*
+	 * This function has a side effect of changing the deleteNoteCandidate values.  I use this 
+	 * to keep track of state, but I should probably have something else to track it?
+	 */
+	public SpeechletResponse getDeleteNoteIntentResponse(Session session, Intent intent, QuickNoteUserDataItem deleteNoteCandidate) {
+		QuickNoteUserDataItem itemFound = null;
+    	String noteName = intent.getSlot(SLOT_TEXT).getValue().toString();
+    	String speechText;
+    	String repromptText;
+    	
+    	System.out.println("Finding note before deleting, by name: " + noteName);
+		
+		try{
+			itemFound = this.dynamoDbClient.loadItem(session.getUser().getUserId(), noteName);
+			
+			if (itemFound == null){
+            	speechText = "I couldn't find a note by that name.  You can ask me to delete the note again.";
+            	
+            	return getTellSpeechletResponse(speechText, false);
+			}
+		} catch (Exception e){
+			return getTellSpeechletResponse("Error retrieving note.", false);
+		}
+		
+		deleteNoteCandidate.setCustomerId(itemFound.getCustomerId());
+		deleteNoteCandidate.setNoteName(itemFound.getNoteName());
+		deleteNoteCandidate.setNoteBody(itemFound.getNoteBody());
+		
+		System.out.println("check this " + deleteNoteCandidate.getCustomerId());
+		String foundNoteName = deleteNoteCandidate.getNoteName();
+		
+		speechText = "Would you like me to delete the note titled: " + foundNoteName;
+		repromptText = "I didn't catch that.  Do you want me to delete your note titled: " + foundNoteName;
+		
+		return getAskSpeechletResponse(speechText, repromptText);
+	}
 
+	public SpeechletResponse getNoIntentResponse(Session seession) {
+		return getTellSpeechletResponse("ok.  I won't delete it.", false);
+	}
+
+	public SpeechletResponse getYesIntentResponse(Session session, QuickNoteUserDataItem deleteThisNote ) {
+		
+		if (deleteThisNote == null){
+			return getTellSpeechletResponse("Error deleting note.", false);
+		}
+		
+		String deletedNoteTitle = deleteThisNote.getNoteName();
+		
+		try{
+			dynamoDbClient.deleteItem(session, deleteThisNote);
+			
+		} catch (Exception e){
+			return getTellSpeechletResponse("I'm having trouble deleting your note." + e.getMessage(), false);
+		}
+		return getTellSpeechletResponse("Sure. Deleting your note titled:  " + deletedNoteTitle, true);
+	}
 
     /**
      * Creates and returns response for the help intent.
@@ -259,8 +315,5 @@ public class QuickNoteManager {
     	else{
     		return SpeechletResponse.newTellResponse(speech);
     	}
-
-
-     
     }
 }

@@ -8,7 +8,7 @@
       "slots": [
         {
           "name": "Text",
-          "type": "AMAZON.LITERAL"
+          "type": "SAMPLE_TEXT"
         }
       ]
     },
@@ -17,9 +17,27 @@
       "slots": [
         {
           "name": "Text",
-          "type": "AMAZON.LITERAL"
+          "type": "SAMPLE_TEXT"
         }
       ]
-    }
+    },
+    {
+      "intent": "DeleteNoteByTitleIntent",
+      "slots": [
+      	{
+      	  "name": "Text",
+      	  "type": "SAMPLE_TEXT"
+      	}
+      ]
+    },
+    {
+      "intent": "AMAZON.YesIntent"
+    },
+    {
+      "intent": "AMAZON.NoIntent"
+    },
+    {
+      "intent": "AMAZON.HelpIntent"
+    }    
   ]
 }

@@ -26,7 +26,9 @@ public class QuickNoteSpeechlet implements Speechlet {
 
     private QuickNoteManager quickNoteManager;
     
-    private QuickNoteUserDataItem  myNote = null;
+    private QuickNoteUserDataItem myNote = null;
+    
+    private QuickNoteUserDataItem deleteNoteCandidate = null;
 
     @Override
     public void onSessionStarted(final SessionStartedRequest request, final Session session)
@@ -52,6 +54,13 @@ public class QuickNoteSpeechlet implements Speechlet {
         log.info("onIntent requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
         initializeComponents();
+        
+        if(deleteNoteCandidate != null){
+            System.out.println("checking delete note status: " + deleteNoteCandidate.getCustomerId());
+        }
+        else {
+        	System.out.println("poop");
+        }
 
         Intent intent = request.getIntent();
         
@@ -64,6 +73,20 @@ public class QuickNoteSpeechlet implements Speechlet {
         else if("GetNoteByTitleIntent".equals(intent.getName())){
         	return quickNoteManager.getGetNoteByTitleIntentResponse(intent, session);
         }
+        
+    	else if ("DeleteNoteByTitleIntent".equals(intent.getName())){
+    		deleteNoteCandidate = new QuickNoteUserDataItem();
+    		return quickNoteManager.getDeleteNoteIntentResponse(session, intent, this.deleteNoteCandidate);
+    	}
+    	else if ("AMAZON.NoIntent".equals(intent.getName()) && this.deleteNoteCandidate != null){
+    		deleteNoteCandidate = null;
+    		return quickNoteManager.getNoIntentResponse(session);
+    	}
+        else if ("AMAZON.YesIntent".equals(intent.getName()) && this.deleteNoteCandidate != null){
+        	//QuickNoteUserDataItem deleteThisNote = deleteNoteCandidate;
+  
+    		return quickNoteManager.getYesIntentResponse(session, this.deleteNoteCandidate);
+    	} 
         
         /**the SetFreeFormDataIntent applies to two different user interactions: setting the title
         * AND setting the body of the note.  We want to determine how to execute on this intent 

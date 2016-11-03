@@ -1,8 +1,8 @@
 package quicknote.storage;
 
+import com.amazon.speech.speechlet.Session;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodbv2.document.DeleteItemOutcome;
 
 /**
  * Client for DynamoDB persistence layer for the Quick Note skill.
@@ -49,4 +49,12 @@ public class QuickNoteDynamoDbClient {
     private DynamoDBMapper createDynamoDBMapper() {
         return new DynamoDBMapper(dynamoDBClient);
     }
+
+	public void deleteItem(Session session,
+			QuickNoteUserDataItem deleteThisNote) {
+		DynamoDBMapper mapper = createDynamoDBMapper();
+		
+		System.out.println(deleteThisNote.getCustomerId() + " " + deleteThisNote.getNoteBody() + " " + deleteThisNote.getNoteName());
+		mapper.delete(deleteThisNote);	
+	}
 }
