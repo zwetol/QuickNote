@@ -54,7 +54,7 @@ public class QuickNoteManager {
         speechText = "This is Quick Note.  You can ask me to create a new note, or you can ask for an existing note by name. What do you want me to do?";
         repromptText = "What would you like me to do?";
 
-        return getAskSpeechletResponse(speechText, repromptText, false);
+        return getAskSpeechletResponse(speechText, repromptText);
     }
 
     /**
@@ -73,7 +73,7 @@ public class QuickNoteManager {
         String speechText = "What is the name of your new note?";
         String repromptText = "Please tell me the name of your new note.";
         
-        return getAskSpeechletResponse(speechText, repromptText, false);
+        return getAskSpeechletResponse(speechText, repromptText);
         
     }
 
@@ -98,7 +98,7 @@ public class QuickNoteManager {
         if (newNoteName == null || newNoteName == ""){
         	speechText = "Sorry I didn't catch that name. Please tell me again.";
         	repromptText = "I couldn't hear your note name.  Please tell me the name again.";
-        	return getAskSpeechletResponse(speechText, repromptText, false);
+        	return getAskSpeechletResponse(speechText, repromptText);
         }
                 
         speechText = "OK. What is the content of your new note?";
@@ -110,7 +110,7 @@ public class QuickNoteManager {
         
         session.setAttribute(NEW_NOTE_KEY, myNote);
 
-        return getAskSpeechletResponse(speechText, repromptText, false);
+        return getAskSpeechletResponse(speechText, repromptText);
     }
 
     /**
@@ -135,7 +135,7 @@ public class QuickNoteManager {
     		speechText = "Sorry I couldn't understand your note content.  Please tell me again.";
     		repromptText = "I didn't catch that.  What is the note content?";
     		
-    		return getAskSpeechletResponse(speechText, repromptText, false);
+    		return getAskSpeechletResponse(speechText, repromptText);
     	}
          
     	ObjectMapper mapper = new ObjectMapper();
@@ -154,14 +154,14 @@ public class QuickNoteManager {
         try{
         	this.dynamoDbClient.saveItem(myNote);
         } catch (Exception e){
-        	return getTellSpeechletResponse("Error saving note.", false, false);
+        	return getTellSpeechletResponse("Error saving note.", false);
         }   
         speechText =  myNote.getNoteName() + " saved with " + myNote.getNoteBody();
         
         //delete the session's existing note attribute since the note was saved successfully
         session.removeAttribute(NEW_NOTE_KEY);
         
-        return getTellSpeechletResponse(speechText, true, false);
+        return getTellSpeechletResponse(speechText, true);
     }
 
     /**
@@ -184,21 +184,21 @@ public class QuickNoteManager {
     	if (noteName == null || noteName == ""){
     		speechText = "I couldn't understand the name of your note.  Please ask me to find it again.";
     		
-    		return getTellSpeechletResponse(speechText, false, false);
+    		return getTellSpeechletResponse(speechText, false);
     	}
         try{
         	itemFound = this.dynamoDbClient.loadItem(session.getUser().getUserId(), noteName);
 
             if (itemFound == null){
             	speechText = "I couldn't find a note by the name: " + noteName + ". " + "You can ask me to find it again.";
-            	
-            	return getTellSpeechletResponse(speechText, false, false);
+      
+            	return getAskSpeechletResponse(speechText, speechText);
             }
             speechText = itemFound.getNoteBody();	             
         } catch (Exception e){
-        	return getTellSpeechletResponse("Error retrieving note.", false, false);
+        	return getTellSpeechletResponse("Error retrieving note.", false);
         }
-        return getTellSpeechletResponse("Found the note titled: " + noteName + ", which reads: " + speechText, true, false);
+        return getTellSpeechletResponse("Found the note titled: " + noteName + ", which reads: " + speechText, true);
     }
 	
     /**
@@ -224,10 +224,10 @@ public class QuickNoteManager {
 			if (itemFound == null){
             	speechText = "I couldn't find a note by the name: " + noteName + ". " + "You can ask me to delete the note by title again.";
             	
-            	return getTellSpeechletResponse(speechText, false, false);
+            	return getAskSpeechletResponse(speechText, speechText);
 			}
 		} catch (Exception e){
-			return getTellSpeechletResponse("Error retrieving note.", false, false);
+			return getTellSpeechletResponse("Error retrieving note.", false);
 		}
         
         QuickNoteUserDataItem deleteNoteCandidate = new QuickNoteUserDataItem();
@@ -243,7 +243,7 @@ public class QuickNoteManager {
 		speechText = "Would you like me to delete the note titled: " + foundNoteName;
 		repromptText = "I didn't catch that.  Do you want me to delete your note titled: " + foundNoteName;
 		
-		return getAskSpeechletResponse(speechText, repromptText, false);
+		return getAskSpeechletResponse(speechText, repromptText);
 	}
     /*
      * Creates and returns response for the  No intent.  This no intent is the user's response to the confirmation
@@ -260,7 +260,7 @@ public class QuickNoteManager {
         
 		session.setAttribute("DeleteNoteCandidate", null);
 		
-		return getTellSpeechletResponse("ok.  I won't delete it.", false, false);
+		return getTellSpeechletResponse("ok.  I won't delete it.", false);
 	}
 	
     /*
@@ -279,7 +279,7 @@ public class QuickNoteManager {
         QuickNoteUserDataItem deleteThisNote = mapper.convertValue(session.getAttribute("DeleteNoteCandidate"), QuickNoteUserDataItem.class);
 		
 		if (deleteThisNote == null){
-			return getTellSpeechletResponse("Error deleting note.", false, false);
+			return getTellSpeechletResponse("Error deleting note.", false);
 		}
 		
 		String deletedNoteTitle = deleteThisNote.getNoteName();
@@ -288,11 +288,11 @@ public class QuickNoteManager {
 			dynamoDbClient.deleteItem(session, deleteThisNote);
 			
 		} catch (Exception e){
-			return getTellSpeechletResponse("I'm having trouble deleting your note." + e.getMessage(), false, false);
+			return getTellSpeechletResponse("I'm having trouble deleting your note." + e.getMessage(), false);
 		}
 		session.setAttribute("DeleteNoteCandidate", null);
 		
-		return getTellSpeechletResponse("Sure. Deleting your note titled:  " + deletedNoteTitle, true, false);
+		return getTellSpeechletResponse("Sure. Deleting your note titled:  " + deletedNoteTitle, true);
 	}
 
     /**
@@ -305,7 +305,12 @@ public class QuickNoteManager {
      * @return response for the help intent
      */
     public SpeechletResponse getHelpIntentResponse(Intent intent, Session session) {
-        return getTellSpeechletResponse("You can tell me to create a note or ask for an existing note by title.", false, false);
+    	
+    	String prompt = "You can tell me to create a note or ask for an existing note by title. You can also ask me to delete an existing note by name."
+    			+ " What would you like me to do?";
+    	String reprompt = "What would you like me to do?";
+    	
+        return getAskSpeechletResponse(prompt, reprompt);
     }
 
     /**
@@ -318,7 +323,7 @@ public class QuickNoteManager {
      * @return response for the exit intent
      */
     public SpeechletResponse getExitIntentResponse(Intent intent, Session session) {
-        return getTellSpeechletResponse("Exiting quick note. Goodbye", false, true);
+        return getTellSpeechletResponse("Exiting quick note. Goodbye", false);
     }
 
     /**
@@ -332,7 +337,7 @@ public class QuickNoteManager {
      * 			  Set whether the session should end after the response is sent
      * @return ask Speechlet response for a speech and reprompt text
      */
-    private SpeechletResponse getAskSpeechletResponse(String speechText, String repromptText, Boolean shouldEndSession) {
+    private SpeechletResponse getAskSpeechletResponse(String speechText, String repromptText) {
     	
         // Create the plain text output.
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
@@ -347,12 +352,6 @@ public class QuickNoteManager {
     	SpeechletResponse response = new SpeechletResponse();
     	response = SpeechletResponse.newAskResponse(speech, reprompt);
 
-        if (shouldEndSession == true){
-        	response.setShouldEndSession(true);
-        }
-        else {
-        	response.setShouldEndSession(false);
-        }
         return response;
     }
 
@@ -367,7 +366,7 @@ public class QuickNoteManager {
      * 			  Set whether the session should end after the response is sent
      * @return a tell Speechlet response for a speech and reprompt text
      */
-    private SpeechletResponse getTellSpeechletResponse(String speechText, Boolean shouldSendCard, Boolean shouldEndSession) {
+    private SpeechletResponse getTellSpeechletResponse(String speechText, Boolean shouldSendCard) {
      
         PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
         speech.setText(speechText);
@@ -383,8 +382,6 @@ public class QuickNoteManager {
     	else{
     		response = SpeechletResponse.newTellResponse(speech);
     	}
-
-        response.setShouldEndSession(shouldEndSession);
 
     	return response;
     }
