@@ -1,8 +1,11 @@
 package quicknote.storage;
 
+import java.util.List;
+
 import com.amazon.speech.speechlet.Session;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
 
 /**
  * Client for DynamoDB persistence layer for the Quick Note skill.
@@ -28,6 +31,23 @@ public class QuickNoteDynamoDbClient {
         QuickNoteUserDataItem item = mapper.load(QuickNoteUserDataItem.class, userId, noteName);
 
         return item;
+    }
+    
+    /**Loads all items from DynamoDB for this customer
+     * 
+     */
+    public List<QuickNoteUserDataItem> findAllUsersItems(String userId) {
+    	DynamoDBMapper mapper = createDynamoDBMapper();
+    
+    	QuickNoteUserDataItem replyKey = new QuickNoteUserDataItem();
+    	replyKey.setCustomerId(userId);
+
+    	DynamoDBQueryExpression<QuickNoteUserDataItem> queryExpression = new DynamoDBQueryExpression<QuickNoteUserDataItem>()
+    	        .withHashKeyValues(replyKey);
+
+    	List<QuickNoteUserDataItem> latestReplies = mapper.query(QuickNoteUserDataItem.class, queryExpression);
+    	
+    	return latestReplies;
     }
 
     /**

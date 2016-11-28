@@ -1,5 +1,7 @@
 package quicknote;
 
+import java.util.List;
+
 import quicknote.storage.QuickNoteDynamoDbClient;
 import quicknote.storage.QuickNoteUserDataItem;
 
@@ -176,29 +178,88 @@ public class QuickNoteManager {
 	public SpeechletResponse getGetNoteByTitleIntentResponse(Intent intent, Session session) {
     	
     	String speechText;
-    	QuickNoteUserDataItem itemFound = null;
+    	List<QuickNoteUserDataItem> itemsFound = null;
     	String noteName = intent.getSlot(SLOT_TEXT).getValue().toString();
     	
     	System.out.println("Finding note by name: " + noteName);
+    	
+    	QuickNoteUserDataItem bestFound = null;
     	
     	if (noteName == null || noteName == ""){
     		speechText = "I couldn't understand the name of your note.  Please ask me to find it again.";
     		
     		return getTellSpeechletResponse(speechText, false);
     	}
-        try{
-        	itemFound = this.dynamoDbClient.loadItem(session.getUser().getUserId(), noteName);
+    	
+    	try{
+    	
+    		itemsFound = this.dynamoDbClient.findAllUsersItems(session.getUser().getUserId());
+    		    		
+    		if (itemsFound == null){
+    			speechText = "I couldn't find any notes for the user.";
+    			return getTellSpeechletResponse(speechText, false);
+    		}
+    		
+    		System.out.println(itemsFound.size());
 
-            if (itemFound == null){
-            	speechText = "I couldn't find a note by the name: " + noteName + ". " + "You can ask me to find it again.";
-      
-            	return getAskSpeechletResponse(speechText, speechText);
+    		bestFound = this.determineBestMatch(itemsFound, noteName);
+    		
+    		speechText = bestFound.getNoteBody();
+    		
+    	} catch (Exception e){
+    		System.out.println("what exception is going on: " + e);
+    		return getTellSpeechletResponse("Error retrieving note.", false);
+    	}
+
+        return getTellSpeechletResponse("Found this note title: " + bestFound.getNoteName() + ", which reads: " + speechText, true);
+    }
+	
+	/**
+	 * Determine best match for the given string
+	 * 
+	 */
+	public QuickNoteUserDataItem determineBestMatch(List<QuickNoteUserDataItem> foundList, String givenNoteName){
+		
+		QuickNoteUserDataItem firstItem = foundList.get(0);
+		int firstItemDistance = this.distance(firstItem.getNoteName(), givenNoteName);
+		
+		int highestMatchValue = firstItemDistance;
+		QuickNoteUserDataItem highestMatchItem = firstItem;
+		
+		for (int i = 1; i < foundList.size() - 1; i++){
+			QuickNoteUserDataItem checkItem = foundList.get(i);
+			String checkItemName = checkItem.getNoteName();
+			
+			//run some algorithm for matching
+			int resultDistance = this.distance(checkItemName, givenNoteName);
+			
+		
+			if(resultDistance <= highestMatchValue){
+				highestMatchValue = resultDistance;
+				highestMatchItem = checkItem;
+			}
+		}
+		return highestMatchItem;
+	}
+	
+    public int distance(String a, String b) {
+        a = a.toLowerCase();
+        b = b.toLowerCase();
+        // i == 0
+        int [] costs = new int [b.length() + 1];
+        for (int j = 0; j < costs.length; j++)
+            costs[j] = j;
+        for (int i = 1; i <= a.length(); i++) {
+            // j == 0; nw = lev(i - 1, j)
+            costs[0] = i;
+            int nw = i - 1;
+            for (int j = 1; j <= b.length(); j++) {
+                int cj = Math.min(1 + Math.min(costs[j], costs[j - 1]), a.charAt(i - 1) == b.charAt(j - 1) ? nw : nw + 1);
+                nw = costs[j];
+                costs[j] = cj;
             }
-            speechText = itemFound.getNoteBody();	             
-        } catch (Exception e){
-        	return getTellSpeechletResponse("Error retrieving note.", false);
         }
-        return getTellSpeechletResponse("Found the note titled: " + noteName + ", which reads: " + speechText, true);
+        return costs[b.length()];
     }
 	
     /**
@@ -216,8 +277,24 @@ public class QuickNoteManager {
     	String speechText;
     	String repromptText;
     	
+    	List<QuickNoteUserDataItem> itemsFound = null;
+    	
     	System.out.println("Finding note before deleting, by name: " + noteName);
+    	
+    	try{
+    		itemsFound = this.dynamoDbClient.findAllUsersItems(session.getUser().getUserId());
+    		
+    		if (itemsFound == null){
+            	speechText = "I couldn't find a note by the name: " + noteName + ". " + "You can ask me to delete the note by title again.";
+
+            	return getAskSpeechletResponse(speechText, speechText);
+    		}
+    	} catch (Exception e){
+			return getTellSpeechletResponse("Error retrieving note.", false);
+    	}
 		
+    	QuickNoteUserDataItem bestMatch = this.determineBestMatch(itemsFound, noteName);
+    	/*
 		try{
 			itemFound = this.dynamoDbClient.loadItem(session.getUser().getUserId(), noteName);
 			
@@ -229,12 +306,13 @@ public class QuickNoteManager {
 		} catch (Exception e){
 			return getTellSpeechletResponse("Error retrieving note.", false);
 		}
+		*/
         
         QuickNoteUserDataItem deleteNoteCandidate = new QuickNoteUserDataItem();
         
-		deleteNoteCandidate.setCustomerId(itemFound.getCustomerId());
-		deleteNoteCandidate.setNoteName(itemFound.getNoteName());
-		deleteNoteCandidate.setNoteBody(itemFound.getNoteBody());
+		deleteNoteCandidate.setCustomerId(bestMatch.getCustomerId());
+		deleteNoteCandidate.setNoteName(bestMatch.getNoteName());
+		deleteNoteCandidate.setNoteBody(bestMatch.getNoteBody());
 		
 		session.setAttribute("DeleteNoteCandidate", deleteNoteCandidate);
 		
