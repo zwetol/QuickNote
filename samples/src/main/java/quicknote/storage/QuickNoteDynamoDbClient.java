@@ -33,8 +33,8 @@ public class QuickNoteDynamoDbClient {
         return item;
     }
     
-    /**Loads all items from DynamoDB for this customer
-     * 
+    /**
+     * Finds all items from DynamoDB for a given customer ID.
      */
     public List<QuickNoteUserDataItem> findAllUsersItems(String userId) {
     	DynamoDBMapper mapper = createDynamoDBMapper();

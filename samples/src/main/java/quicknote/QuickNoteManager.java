@@ -215,16 +215,22 @@ public class QuickNoteManager {
     }
 	
 	/**
-	 * Determine best match for the given string
+	 * This function will return the best matching QuickNoteUserDataItem from a list of QuickNoteUserDataItems.
+	 * The best match is determined by finding the note with a title that has the lowest Levenshtein distance from the givenNoteName.
 	 * 
+	 * NOTE: Currently the function will always return a best match, but we will want to make a cut-off somehow. 
+	 * 
+	 * @param givenNoteName = item name as determined by NLU/ASR
+	 * @param foundList = list of all items returned for that user from DynamoDB
+	 * @return the best matching item
 	 */
 	public QuickNoteUserDataItem determineBestMatch(List<QuickNoteUserDataItem> foundList, String givenNoteName){
 		
 		QuickNoteUserDataItem firstItem = foundList.get(0);
 		int firstItemDistance = this.distance(firstItem.getNoteName(), givenNoteName);
 		
-		int highestMatchValue = firstItemDistance;
-		QuickNoteUserDataItem highestMatchItem = firstItem;
+		int bestMatchValue = firstItemDistance;
+		QuickNoteUserDataItem bestMatchItem = firstItem;
 		
 		for (int i = 1; i < foundList.size() - 1; i++){
 			QuickNoteUserDataItem checkItem = foundList.get(i);
@@ -234,23 +240,32 @@ public class QuickNoteManager {
 			int resultDistance = this.distance(checkItemName, givenNoteName);
 			
 		
-			if(resultDistance <= highestMatchValue){
-				highestMatchValue = resultDistance;
-				highestMatchItem = checkItem;
+			if(resultDistance <= bestMatchValue){
+				bestMatchValue = resultDistance;
+				bestMatchItem = checkItem;
 			}
 		}
-		return highestMatchItem;
+		return bestMatchItem;
 	}
 	
+	/**
+	 * Get the Levenshtein distance, a.k.a. cost, between two strings.
+	 * 
+	 * The greater the cost the more operations needed in order to 
+	 * transform one string into the other.
+	 * 
+	 * @param a
+	 * @param b
+	 * @return cost
+	 */
     public int distance(String a, String b) {
         a = a.toLowerCase();
         b = b.toLowerCase();
-        // i == 0
+
         int [] costs = new int [b.length() + 1];
         for (int j = 0; j < costs.length; j++)
             costs[j] = j;
         for (int i = 1; i <= a.length(); i++) {
-            // j == 0; nw = lev(i - 1, j)
             costs[0] = i;
             int nw = i - 1;
             for (int j = 1; j <= b.length(); j++) {
@@ -272,7 +287,6 @@ public class QuickNoteManager {
      * @return response for the delete note by title intent
      */
 	public SpeechletResponse putDeleteNoteIntentResponse(Session session, Intent intent) {
-		QuickNoteUserDataItem itemFound = null;
     	String noteName = intent.getSlot(SLOT_TEXT).getValue().toString();
     	String speechText;
     	String repromptText;
@@ -294,19 +308,6 @@ public class QuickNoteManager {
     	}
 		
     	QuickNoteUserDataItem bestMatch = this.determineBestMatch(itemsFound, noteName);
-    	/*
-		try{
-			itemFound = this.dynamoDbClient.loadItem(session.getUser().getUserId(), noteName);
-			
-			if (itemFound == null){
-            	speechText = "I couldn't find a note by the name: " + noteName + ". " + "You can ask me to delete the note by title again.";
-            	
-            	return getAskSpeechletResponse(speechText, speechText);
-			}
-		} catch (Exception e){
-			return getTellSpeechletResponse("Error retrieving note.", false);
-		}
-		*/
         
         QuickNoteUserDataItem deleteNoteCandidate = new QuickNoteUserDataItem();
         
