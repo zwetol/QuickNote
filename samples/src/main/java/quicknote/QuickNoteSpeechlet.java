@@ -93,8 +93,19 @@ public class QuickNoteSpeechlet implements Speechlet {
                 throw new IllegalArgumentException("Unrecognized SetFreeFormDataIntent action " + intent.getName());
         	}
         } 
+        /*
+        else if("ReadAllNotes".equals(intent.getName())){
+        	return quickNoteManager.getAllNotes(intent, session);
+        }
+        */
         else if("AMAZON.HelpIntent".equals(intent.getName())){
         	return quickNoteManager.getHelpIntentResponse(intent, session);
+        }
+        else if ("AMAZON.CancelIntent".equals(intent.getName())){
+        	return quickNoteManager.getExitIntentResponse(intent, session);
+        }
+        else if ("AMAZON.ExitIntent".equals(intent.getName()) || "AMAZON.StopIntent".equals(intent.getName())){
+        	return quickNoteManager.getExitIntentResponse(intent, session);
         }
         else {
         	log.error("Unrecognized intent: " + intent.getName());

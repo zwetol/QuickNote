@@ -44,17 +44,23 @@ public class QuickNoteManager {
      * @return response for launch request
      */
     public SpeechletResponse getLaunchResponse(LaunchRequest request, Session session) {
-        // Speak welcome message and ask user questions
-        // based on whether the customer has any notes saved already
         String speechText, repromptText;
         
-        //TODO: implement a check for existing notes for the user.  If there is no existing note, then read the following.
-        //speechText = "This is Quick Note.  You can ask me to create a new note.";
-        //return getTellSpeechletResponse(speechText, false);
-        
-        //TODO add check for existing notes from that user. If there are existing notes, then read the following
-        speechText = "This is Quick Note.  You can ask me to create a new note, or you can ask for an existing note by name. What do you want me to do?";
+        speechText = "This is Quick Note. You can ask me to create a new note, get an existing note by title, or delete a note by title.  What would you like to do?";
         repromptText = "What would you like me to do?";
+        
+    	List<QuickNoteUserDataItem> itemsFound = null;
+        
+        try {	
+        	itemsFound = this.dynamoDbClient.findAllUsersItems(session.getUser().getUserId());
+    		
+    		if (itemsFound.size() <= 0){
+    			speechText = "Welcome to Quick Note.  You can ask me to create a new note.";
+    			return getAskSpeechletResponse(speechText, repromptText);
+    		}
+        } catch (Exception e){
+        	
+        }   
 
         return getAskSpeechletResponse(speechText, repromptText);
     }
@@ -158,7 +164,7 @@ public class QuickNoteManager {
         } catch (Exception e){
         	return getTellSpeechletResponse("Error saving note.", false);
         }   
-        speechText =  myNote.getNoteName() + " saved with " + myNote.getNoteBody();
+        speechText =  myNote.getNoteName() + ", saved with: " + myNote.getNoteBody();
         
         //delete the session's existing note attribute since the note was saved successfully
         session.removeAttribute(NEW_NOTE_KEY);
@@ -195,8 +201,8 @@ public class QuickNoteManager {
     	
     		itemsFound = this.dynamoDbClient.findAllUsersItems(session.getUser().getUserId());
     		    		
-    		if (itemsFound == null){
-    			speechText = "I couldn't find any notes for the user.";
+    		if (itemsFound.size() <= 0){
+    			speechText = "I couldn't find any notes saved for you.";
     			return getTellSpeechletResponse(speechText, false);
     		}
     		
@@ -213,6 +219,30 @@ public class QuickNoteManager {
 
         return getTellSpeechletResponse("Found this note title: " + bestFound.getNoteName() + ", which reads: " + speechText, true);
     }
+	
+	/**
+	public SpeechletResponse getAllNotes(Intent intent, Session session) {
+		
+		String speechText;
+		List<QuickNoteUserDataItem> itemsFound = null;
+		
+		try{
+			itemsFound = this.dynamoDbClient.findAllUsersItems(session.getUser().getUserId());
+			
+			if (itemsFound.size() <= 0){
+				speechText = "I couldn't find any notes saved for you.";
+				return getTellSpeechletResponse(speechText, false);
+			}
+			
+		} catch (Exception e){
+			return getTellSpeechletResponse("Error retrieving note.", false);
+		}
+		
+		
+		
+		return getTellSpeechletResponse("I found " + noteCount + " notes saved for you.  The latest are: " + );
+	}
+	*/
 	
 	/**
 	 * This function will return the best matching QuickNoteUserDataItem from a list of QuickNoteUserDataItems.
@@ -298,7 +328,7 @@ public class QuickNoteManager {
     	try{
     		itemsFound = this.dynamoDbClient.findAllUsersItems(session.getUser().getUserId());
     		
-    		if (itemsFound == null){
+    		if (itemsFound.size() <= 0){
             	speechText = "I couldn't find a note by the name: " + noteName + ". " + "You can ask me to delete the note by title again.";
 
             	return getAskSpeechletResponse(speechText, speechText);
@@ -324,6 +354,7 @@ public class QuickNoteManager {
 		
 		return getAskSpeechletResponse(speechText, repromptText);
 	}
+	
     /*
      * Creates and returns response for the  No intent.  This no intent is the user's response to the confirmation
      * question on whether or not the selected note should be deleted.  The No Intent means that we should NOT move forward
