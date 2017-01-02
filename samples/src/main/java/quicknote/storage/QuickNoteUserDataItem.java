@@ -11,7 +11,7 @@ import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBTable;
  * skill.
  */
 @DynamoDBTable(tableName = "QuickNoteUserData")
-public class QuickNoteUserDataItem {
+public class QuickNoteUserDataItem implements Note{
     
     private String customerId;
 

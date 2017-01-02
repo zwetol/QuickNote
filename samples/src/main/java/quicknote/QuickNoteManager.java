@@ -2,6 +2,7 @@ package quicknote;
 
 import java.util.List;
 
+import quicknote.storage.QuickNote;
 import quicknote.storage.QuickNoteDynamoDbClient;
 import quicknote.storage.QuickNoteUserDataItem;
 
@@ -26,8 +27,6 @@ public class QuickNoteManager {
     private static final String SLOT_TEXT = "Text";
 
     private final QuickNoteDynamoDbClient dynamoDbClient; 
-    
-    private static final String NEW_NOTE_KEY = "NewNote";
     
     public QuickNoteManager(final AmazonDynamoDBClient amazonDynamoDbClient) {
     	dynamoDbClient = new QuickNoteDynamoDbClient(amazonDynamoDbClient);
@@ -66,110 +65,45 @@ public class QuickNoteManager {
     }
 
     /**
-     * Creates and returns response for the new note intent.
-     *
-     * @param session
-     *            {@link Session} for the request
+     * Creates a new empty instance of QuickNote.
      *
      * @return response for the create new note intent
      */
-    public SpeechletResponse putCreateNewNoteIntentResponse(Session session) {
-    	QuickNoteUserDataItem myNote = new QuickNoteUserDataItem();
-    			
-    	session.setAttribute(NEW_NOTE_KEY, (QuickNoteUserDataItem) myNote);
+    public QuickNote createEmptyNewNote() {
     	
-        String speechText = "What is the name of your new note?";
-        String repromptText = "Please tell me the name of your new note.";
+    	QuickNote myNote = new QuickNote();
         
-        return getAskSpeechletResponse(speechText, repromptText);
-        
-    }
-
-    /**
-     * Creates and returns response for the new note title.
-     *
-     * @param intent
-     *            {@link Intent} for this request
-     * @param session
-     *            Speechlet {@link Session} for this request
-     * @param quickNoteUserDataItem           
-     * 
-     * @return response for the SetFreeFormDataIntent where the Note Name is being set
-     */
-    public SpeechletResponse putSetNoteTitleIntentResponse(Intent intent, Session session) {
-    	    	
-        String newNoteName = intent.getSlot(SLOT_TEXT).getValue();
-        
-        String speechText;
-        String repromptText;
-        
-        if (newNoteName == null || newNoteName == ""){
-        	speechText = "Sorry I didn't catch that name. Please tell me again.";
-        	repromptText = "I couldn't hear your note name.  Please tell me the name again.";
-        	return getAskSpeechletResponse(speechText, repromptText);
-        }
-                
-        speechText = "OK. What is the content of your new note?";
-        repromptText = "I didn't catch that. What is the content of your new note?";
-        
-        ObjectMapper mapper = new ObjectMapper();
-        QuickNoteUserDataItem myNote = mapper.convertValue(session.getAttribute("NewNote"), QuickNoteUserDataItem.class);
-        myNote.setNoteName(newNoteName);
-        
-        session.setAttribute(NEW_NOTE_KEY, myNote);
-
-        return getAskSpeechletResponse(speechText, repromptText);
+        return myNote;
     }
 
     /**
      * Creates and returns response for the SetFreeFormDataIntent where the Note Body is being set
      *
      * @param intent
-     *            {@link Intent} for this request
      * @param session
-     *            {@link Session} for this request
      * @param myNote 
      * 				the note that we are going to add to the DB
      * 
      * @return response for the add score intent
      */
-    public SpeechletResponse postSetNoteBodyIntentResponse(Intent intent, Session session) {
- 
-    	String newNoteBody = intent.getSlot(SLOT_TEXT).getValue();
-    	String speechText;
-    	String repromptText;
+    public QuickNote saveNote(QuickNote myQuickNote) {
+        
+    	QuickNoteUserDataItem myQuickNoteUserDataItem = new QuickNoteUserDataItem();
     	
-    	if (newNoteBody == null || newNoteBody == ""){
-    		speechText = "Sorry I couldn't understand your note content.  Please tell me again.";
-    		repromptText = "I didn't catch that.  What is the note content?";
-    		
-    		return getAskSpeechletResponse(speechText, repromptText);
-    	}
-         
-    	ObjectMapper mapper = new ObjectMapper();
-        QuickNoteUserDataItem myNote = mapper.convertValue(session.getAttribute("NewNote"), QuickNoteUserDataItem.class);
-        myNote.setNoteBody(newNoteBody);
-        myNote.setCustomerId(session.getUser().getUserId());
-        
-        session.setAttribute(NEW_NOTE_KEY, myNote);
-        
-        System.out.println("note name: " + myNote.getNoteName());
-        System.out.println("note body:" + myNote.getNoteBody());
-        System.out.println("note customer: " + myNote.getCustomerId());
-        
-        
+    	myQuickNoteUserDataItem.setCustomerId(myQuickNote.getCustomerId());
+    	myQuickNoteUserDataItem.setNoteName(myQuickNote.getNoteName());
+    	myQuickNoteUserDataItem.setNoteBody(myQuickNote.getNoteBody());
+    	
         //save the note to dynamoDB
         try{
-        	this.dynamoDbClient.saveItem(myNote);
+        	
+        	this.dynamoDbClient.saveItem(myQuickNoteUserDataItem);
+        	
         } catch (Exception e){
-        	return getTellSpeechletResponse("Error saving note.", false);
-        }   
-        speechText =  myNote.getNoteName() + ", saved with: " + myNote.getNoteBody();
+        	myQuickNote.setHasError();
+        } 
         
-        //delete the session's existing note attribute since the note was saved successfully
-        session.removeAttribute(NEW_NOTE_KEY);
-        
-        return getTellSpeechletResponse(speechText, true);
+        return myQuickNote;
     }
 
     /**
@@ -181,43 +115,38 @@ public class QuickNoteManager {
      *            {@link Session} for this request
      * @return response for the get note by name intent
      */
-	public SpeechletResponse getGetNoteByTitleIntentResponse(Intent intent, Session session) {
-    	
-    	String speechText;
+	public QuickNote getBestMatchNote(String findThisNoteName, String customerId) {
+
     	List<QuickNoteUserDataItem> itemsFound = null;
-    	String noteName = intent.getSlot(SLOT_TEXT).getValue().toString();
     	
-    	System.out.println("Finding note by name: " + noteName);
+    	QuickNote myFoundNote = new QuickNote();
+    	
+    	System.out.println("Finding note by name: " + findThisNoteName);
     	
     	QuickNoteUserDataItem bestFound = null;
     	
-    	if (noteName == null || noteName == ""){
-    		speechText = "I couldn't understand the name of your note.  Please ask me to find it again.";
-    		
-    		return getTellSpeechletResponse(speechText, false);
-    	}
-    	
     	try{
     	
-    		itemsFound = this.dynamoDbClient.findAllUsersItems(session.getUser().getUserId());
+    		itemsFound = this.dynamoDbClient.findAllUsersItems(customerId);
     		    		
     		if (itemsFound.size() <= 0){
-    			speechText = "I couldn't find any notes saved for you.";
-    			return getTellSpeechletResponse(speechText, false);
+    			myFoundNote.setDoesNotExistError();
     		}
     		
     		System.out.println(itemsFound.size());
 
-    		bestFound = this.determineBestMatch(itemsFound, noteName);
+    		bestFound = this.determineBestMatch(itemsFound, findThisNoteName);
     		
-    		speechText = bestFound.getNoteBody();
+    		myFoundNote.setCustomerId(bestFound.getCustomerId());
+    		myFoundNote.setNoteName(bestFound.getNoteName());
+    		myFoundNote.setNoteBody(bestFound.getNoteBody());
     		
     	} catch (Exception e){
     		System.out.println("what exception is going on: " + e);
-    		return getTellSpeechletResponse("Error retrieving note.", false);
+    		myFoundNote.setHasError();
     	}
 
-        return getTellSpeechletResponse("Found this note title: " + bestFound.getNoteName() + ", which reads: " + speechText, true);
+        return myFoundNote;
     }
 	
 	/**
@@ -254,7 +183,7 @@ public class QuickNoteManager {
 	 * @param foundList = list of all items returned for that user from DynamoDB
 	 * @return the best matching item
 	 */
-	public QuickNoteUserDataItem determineBestMatch(List<QuickNoteUserDataItem> foundList, String givenNoteName){
+	private QuickNoteUserDataItem determineBestMatch(List<QuickNoteUserDataItem> foundList, String givenNoteName){
 		
 		QuickNoteUserDataItem firstItem = foundList.get(0);
 		int firstItemDistance = this.distance(firstItem.getNoteName(), givenNoteName);
@@ -288,7 +217,7 @@ public class QuickNoteManager {
 	 * @param b
 	 * @return cost
 	 */
-    public int distance(String a, String b) {
+    private int distance(String a, String b) {
         a = a.toLowerCase();
         b = b.toLowerCase();
 
@@ -316,20 +245,18 @@ public class QuickNoteManager {
      *            {@link Session} for this request
      * @return response for the delete note by title intent
      */
-	public SpeechletResponse putDeleteNoteIntentResponse(Session session, Intent intent) {
-    	String noteName = intent.getSlot(SLOT_TEXT).getValue().toString();
-    	String speechText;
-    	String repromptText;
-    	
+    //TODO: working on deleteNote refactor
+	public QuickNote deleteNote(String customerId, String desiredNoteName) {
+
     	List<QuickNoteUserDataItem> itemsFound = null;
     	
-    	System.out.println("Finding note before deleting, by name: " + noteName);
+    	System.out.println("Finding note before deleting, by name: " + desiredNoteName);
     	
     	try{
     		itemsFound = this.dynamoDbClient.findAllUsersItems(session.getUser().getUserId());
     		
     		if (itemsFound.size() <= 0){
-            	speechText = "I couldn't find a note by the name: " + noteName + ". " + "You can ask me to delete the note by title again.";
+            	speechText = "I couldn't find a note by the name: " + desiredNoteName + ". " + "You can ask me to delete the note by title again.";
 
             	return getAskSpeechletResponse(speechText, speechText);
     		}
@@ -366,7 +293,7 @@ public class QuickNoteManager {
      *            {@link Session} for this request. This is used to keep track of the delete note candidate
      * @return response for the Yes intent.
      */
-	public SpeechletResponse postNoIntentResponse(Session session) {
+	public SpeechletResponse cancelDelete(Session session) {
         
 		session.setAttribute("DeleteNoteCandidate", null);
 		
@@ -383,7 +310,7 @@ public class QuickNoteManager {
      *            {@link Session} for this request.  This is used to keep track of the delete not candidate
      * @return response for the Yes intent.
      */
-	public SpeechletResponse postYesIntentResponse(Session session) {
+	public SpeechletResponse confirmDelete(Session session) {
 		
 		ObjectMapper mapper = new ObjectMapper();
         QuickNoteUserDataItem deleteThisNote = mapper.convertValue(session.getAttribute("DeleteNoteCandidate"), QuickNoteUserDataItem.class);
@@ -404,37 +331,6 @@ public class QuickNoteManager {
 		
 		return getTellSpeechletResponse("Sure. Deleting your note titled:  " + deletedNoteTitle, true);
 	}
-
-    /**
-     * Creates and returns response for the help intent.
-     *
-     * @param intent
-     *            {@link Intent} for this request
-     * @param session
-     *            {@link Session} for this request
-     * @return response for the help intent
-     */
-    public SpeechletResponse getHelpIntentResponse(Intent intent, Session session) {
-    	
-    	String prompt = "You can tell me to create a note or ask for an existing note by title. You can also ask me to delete an existing note by name."
-    			+ " What would you like me to do?";
-    	String reprompt = "What would you like me to do?";
-    	
-        return getAskSpeechletResponse(prompt, reprompt);
-    }
-
-    /**
-     * Creates and returns response for the exit intent.
-     *
-     * @param intent
-     *            {@link Intent} for this request
-     * @param session
-     *            {@link Session} for this request
-     * @return response for the exit intent
-     */
-    public SpeechletResponse getExitIntentResponse(Intent intent, Session session) {
-        return getTellSpeechletResponse("Exiting quick note. Goodbye", false);
-    }
 
     /**
      * Returns an ask Speechlet response for a speech and reprompt text.
