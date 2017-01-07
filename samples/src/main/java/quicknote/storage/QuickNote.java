@@ -10,7 +10,7 @@ public class QuickNote implements Note{
     
     private Boolean hasError = false;
     
-    private Boolean doesNotExistError = false;
+    private Boolean noItemsFoundError = false;
 
     
     public String getCustomerId() {
@@ -40,11 +40,11 @@ public class QuickNote implements Note{
     public Boolean getHasError() {
     	return hasError;
     }
-    
-	public void setDoesNotExistError() {
-		this.doesNotExistError = true;
-	}    
-	public Boolean getDoesNotExistError(){
-		return doesNotExistError;
+	
+	public void setNoItemsFoundError() {
+		this.noItemsFoundError = true;
+	}
+	public Boolean getNoItemsFoundError() {
+		return noItemsFoundError;
 	}
 }

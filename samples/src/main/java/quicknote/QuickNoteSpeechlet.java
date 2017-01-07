@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import quicknote.storage.QuickNote;
-import quicknote.storage.QuickNoteUserDataItem;
 
 import com.amazon.speech.slu.Intent;
 import com.amazon.speech.speechlet.IntentRequest;
@@ -52,7 +51,7 @@ public class QuickNoteSpeechlet implements Speechlet {
         log.info("onLaunch requestId={}, sessionId={}", request.getRequestId(),
                 session.getSessionId());
         
-        return quickNoteManager.getLaunchResponse(request, session);
+        return getLaunchResponse(request, session);
     }
 
     @Override
@@ -76,13 +75,13 @@ public class QuickNoteSpeechlet implements Speechlet {
         	return getNote(intent, session);
         }   
     	else if ("DeleteNoteByTitleIntent".equals(intent.getName())){
-    		return quickNoteManager.deleteNote(session, intent);
+    		return deleteNote(session, intent);
     	}
     	else if ("AMAZON.NoIntent".equals(intent.getName()) && deleteNoteCandidate != null){
-    		return quickNoteManager.cancelDelete(session);
+    		return cancelDelete(session);
     	}
         else if ("AMAZON.YesIntent".equals(intent.getName()) && deleteNoteCandidate != null){  
-    		return quickNoteManager.confirmDelete(session);
+    		return confirmDelete(session);
     	} 
         
         /**
@@ -141,6 +140,32 @@ public class QuickNoteSpeechlet implements Speechlet {
     }
     
     /**
+     * Creates and returns response for Launch request.
+     *
+     * @param request
+     *            {@link LaunchRequest} for this request
+     * @param session
+     *            Speechlet {@link Session} for this request
+     * @return response for launch request
+     */
+    public SpeechletResponse getLaunchResponse(LaunchRequest request, Session session) {
+        String speechText, repromptText;
+        
+        speechText = "This is Quick Note. You can ask me to create a new note, get an existing note by title, or delete a note by title.  What would you like to do?";
+        repromptText = "What would you like me to do?";
+     
+        int numItemsFound = quickNoteManager.getNumOfAllNotes(session.getUser().getUserId());
+    		
+    	if (numItemsFound <= 0){
+    		speechText = "Welcome to Quick Note.  You can ask me to create a new note.";
+    		repromptText = "You can ask me to create a new note.";
+    		return getAskSpeechletResponse(speechText, repromptText);
+    	} 
+
+        return getAskSpeechletResponse(speechText, repromptText);
+    }
+    
+    /**
      * Creates and returns response for the new note intent.
      *
      * @param session
@@ -150,7 +175,7 @@ public class QuickNoteSpeechlet implements Speechlet {
      */
     public SpeechletResponse createNewNote(Session session) {
     	
-    	QuickNote myNote = quickNoteManager.createEmptyNewNote();
+    	QuickNote myNote = new QuickNote();
     			
     	session.setAttribute(NEW_NOTE_KEY, (QuickNote) myNote);
     	
@@ -248,7 +273,7 @@ public class QuickNoteSpeechlet implements Speechlet {
     	String noteName = intent.getSlot(SLOT_TEXT).getValue().toString();
     	String customerId = session.getUser().getUserId();
     	
-    	System.out.println("Finding note by name: " + noteName);
+    	System.out.println("Finding note by name in the speechlet: " + noteName);
     	
     	QuickNote bestFound = null;
     	
@@ -263,14 +288,64 @@ public class QuickNoteSpeechlet implements Speechlet {
     		speechText = "Error retrieving note.";
     		return getTellSpeechletResponse(speechText, false);
     	}
-    	if (bestFound.getDoesNotExistError()){
+    	if (bestFound.getNoItemsFoundError()){
     		speechText = "I do not see any notes saved for you.";
     		return getTellSpeechletResponse(speechText, false);
     	}
     		
     	speechText = "Found this note title: " + bestFound.getNoteName() + ", which reads: " + bestFound.getNoteBody();
+    	
         return getTellSpeechletResponse(speechText, true);
     }
+	
+	public SpeechletResponse getAllNotes(Session session) {
+		
+		List<QuickNote> itemsFound = null;
+		
+		itemsFound = quickNoteManager.getAllNotes(session.getUser().getUserId());
+		
+		if (itemsFound == null){
+			return getTellSpeechletResponse("Error retrieving note.", false);
+		}
+		
+		int numItemsFound = itemsFound.size();
+			
+		String speechText = null;
+				
+		if (numItemsFound <= 0){
+			speechText = "I couldn't find any notes saved for you.";
+		}
+
+		if (numItemsFound == 1){
+			speechText = "I found one note saved for you. It is: " + itemsFound.get(0).getNoteName() +
+					", which reads: " + itemsFound.get(0).getNoteBody();
+		}
+		
+		if (numItemsFound == 2){
+			speechText = "I found two notes saved for you. They are: " + itemsFound.get(0).getNoteName() +
+					", which reads: " + itemsFound.get(0).getNoteBody() +
+					". And the second one is: " + itemsFound.get(1).getNoteName() + ", which reads: " +
+					itemsFound.get(1).getNoteBody() + ".";
+		}
+		
+		if (numItemsFound == 3){
+			speechText = "I found three notes saved for you. They are: " + itemsFound.get(0).getNoteName() +
+					", which reads: " + itemsFound.get(0).getNoteBody() +
+					". The second one is: " + itemsFound.get(1).getNoteName() + ", which reads: " +
+					itemsFound.get(1).getNoteBody() + ". And the third note is: " +
+					itemsFound.get(2).getNoteName() + ", which reads: " + itemsFound.get(2).getNoteName();
+		}
+		
+		if (numItemsFound >= 4){
+			speechText = "I found: " + numItemsFound + "saved for you. The three most recently added are: " +
+					itemsFound.get(0).getNoteName() + ", which reads: " + itemsFound.get(0).getNoteBody() + 
+					". The second one is: " + itemsFound.get(1).getNoteName() + 
+					", which reads: " + itemsFound.get(1).getNoteBody() + ". And the third note is: " + 
+					itemsFound.get(2).getNoteName() + ", which reads: " + itemsFound.get(2).getNoteBody() + ".";
+					
+		}
+		return getTellSpeechletResponse(speechText, true);
+	}
 	
     /**
      * Creates and returns response for the DeleteNoteIntentResponse
@@ -286,29 +361,18 @@ public class QuickNoteSpeechlet implements Speechlet {
     	String speechText;
     	String repromptText;
     	
-    	List<QuickNoteUserDataItem> itemsFound = null;
-    	
     	System.out.println("Finding note before deleting, by name: " + noteName);
     	
-    	try{
-    		itemsFound = this.dynamoDbClient.findAllUsersItems(session.getUser().getUserId());
-    		
-    		if (itemsFound.size() <= 0){
-            	speechText = "I couldn't find a note by the name: " + noteName + ". " + "You can ask me to delete the note by title again.";
-
-            	return getAskSpeechletResponse(speechText, speechText);
-    		}
-    	} catch (Exception e){
+    	QuickNote deleteNoteCandidate = quickNoteManager.getBestMatchNote(noteName, session.getUser().getUserId());
+    	
+    	if (deleteNoteCandidate.getNoItemsFoundError()){
+            speechText = "I couldn't find any notes saved for you.";
+            return getAskSpeechletResponse(speechText, speechText);
+    	}
+    	
+    	if (deleteNoteCandidate.getHasError()){
 			return getTellSpeechletResponse("Error retrieving note.", false);
     	}
-		
-    	QuickNoteUserDataItem bestMatch = this.determineBestMatch(itemsFound, noteName);
-        
-        QuickNoteUserDataItem deleteNoteCandidate = new QuickNoteUserDataItem();
-        
-		deleteNoteCandidate.setCustomerId(bestMatch.getCustomerId());
-		deleteNoteCandidate.setNoteName(bestMatch.getNoteName());
-		deleteNoteCandidate.setNoteBody(bestMatch.getNoteBody());
 		
 		session.setAttribute("DeleteNoteCandidate", deleteNoteCandidate);
 		
@@ -318,6 +382,57 @@ public class QuickNoteSpeechlet implements Speechlet {
 		repromptText = "I didn't catch that.  Do you want me to delete your note titled: " + foundNoteName;
 		
 		return getAskSpeechletResponse(speechText, repromptText);
+	}
+	
+    /**
+     * Creates and returns response for the  No intent.  This no intent is the user's response to the confirmation
+     * question on whether or not the selected note should be deleted.  The No Intent means that we should NOT move forward
+     * with deleting the selected note.
+     * 
+     * This function will clear the delete note candidate from the session and NOT move forward with the deletion.
+     * 
+     * @param session
+     *            {@link Session} for this request. This is used to keep track of the delete note candidate
+     * @return response for the Yes intent.
+     */
+	public SpeechletResponse cancelDelete(Session session) {
+        
+		session.setAttribute("DeleteNoteCandidate", null);
+		
+		return getTellSpeechletResponse("ok.  I won't delete it.", false);
+	}
+	
+    /**
+     * Creates and returns response for the YesIntent that is interpreted as a confirmDelete action.
+     * 
+     * This function will attempt to delete the selected note in the DB.
+     *
+     * @param session
+     *            {@link Session} for this request.  This is used to keep track of the delete not candidate
+     * @return response for the Yes intent.
+     */
+	public SpeechletResponse confirmDelete(Session session) {
+		
+		Boolean isDeleted = false; 
+		
+		ObjectMapper mapper = new ObjectMapper();
+        QuickNote deleteThisNote = mapper.convertValue(session.getAttribute("DeleteNoteCandidate"), QuickNote.class);
+		
+		if (deleteThisNote == null){
+			return getTellSpeechletResponse("Error deleting note.", false);
+		}
+		
+		isDeleted = quickNoteManager.confirmDelete(deleteThisNote);		
+		
+		String deletedNoteTitle = deleteThisNote.getNoteName();
+		
+		if (!isDeleted){
+			return getTellSpeechletResponse("I'm having trouble deleting your note.", false);
+		}
+		
+		session.setAttribute("DeleteNoteCandidate", null);
+		
+		return getTellSpeechletResponse("Sure. Your note titled:  " + deletedNoteTitle + " has been deleted.", true);
 	}
     
     /**

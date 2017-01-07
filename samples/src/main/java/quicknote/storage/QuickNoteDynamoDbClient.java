@@ -2,7 +2,6 @@ package quicknote.storage;
 
 import java.util.List;
 
-import com.amazon.speech.speechlet.Session;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBQueryExpression;
@@ -70,8 +69,7 @@ public class QuickNoteDynamoDbClient {
         return new DynamoDBMapper(dynamoDBClient);
     }
 
-	public void deleteItem(Session session,
-			QuickNoteUserDataItem deleteThisNote) {
+	public void deleteItem(QuickNoteUserDataItem deleteThisNote) {
 		DynamoDBMapper mapper = createDynamoDBMapper();
 		
 		System.out.println(deleteThisNote.getCustomerId() + " " + deleteThisNote.getNoteBody() + " " + deleteThisNote.getNoteName());
